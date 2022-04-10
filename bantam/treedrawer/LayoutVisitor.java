@@ -16,9 +16,9 @@
  * --changed all the visit methods to work with the Visitor class
  */
 
-package bantam.treedrawer;
+package proj8BogatyrevDimitrovWang.bantam.treedrawer;
 
-import bantam.ast.*;
+import proj8BogatyrevDimitrovWang.bantam.ast.*;
 import bantam.visitor.Visitor;
 
 import java.awt.*;

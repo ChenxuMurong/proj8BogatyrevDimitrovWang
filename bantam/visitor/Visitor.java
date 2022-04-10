@@ -24,9 +24,9 @@
    PARTICULAR PURPOSE. 
 */
 
-package bantam.visitor;
+package proj8BogatyrevDimitrovWang.bantam.visitor;
 
-import bantam.ast.*;
+import proj8BogatyrevDimitrovWang.bantam.ast.*;
 
 import java.util.Iterator;
 

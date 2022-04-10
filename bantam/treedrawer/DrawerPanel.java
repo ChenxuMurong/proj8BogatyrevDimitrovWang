@@ -12,7 +12,7 @@
  * of the authors.
  */
 
-package bantam.treedrawer;
+package proj8BogatyrevDimitrovWang.bantam.treedrawer;
 
 import javax.swing.*;
 import java.awt.*;

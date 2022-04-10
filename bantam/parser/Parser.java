@@ -9,7 +9,20 @@
  * EMPTY indicates a rule with an empty right hand side.
  * All other symbols in the rules are terminals.
  */
-package bantam.parser;
+package proj8BogatyrevDimitrovWang.bantam.parser;
+
+
+import bantam.lexer.Scanner;
+import bantam.lexer.Scanner;
+import bantam.lexer.Token;
+import bantam.util.Error;
+import bantam.util.ErrorHandler;
+import bantam.util.CompilationException;
+
+import proj8BogatyrevDimitrovWang.bantam.ast.*;
+
+import static bantam.lexer.Token.Kind.EOF;
+
 
 public class Parser
 {

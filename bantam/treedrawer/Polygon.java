@@ -12,7 +12,8 @@
  * of the authors.
  */
 
-package bantam.treedrawer;
+package proj8BogatyrevDimitrovWang.bantam.treedrawer;
+
 
 class Polygon
 {

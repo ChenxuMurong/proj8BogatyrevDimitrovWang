@@ -30,7 +30,7 @@
      so that foreach loops can be used
 */
 
-package bantam.ast;
+package proj8BogatyrevDimitrovWang.bantam.ast;
 
 import bantam.visitor.Visitor;
 

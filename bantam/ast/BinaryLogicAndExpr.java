@@ -24,7 +24,7 @@
    PARTICULAR PURPOSE. 
 */
 
-package bantam.ast;
+package proj8BogatyrevDimitrovWang.bantam.ast;
 
 import bantam.visitor.Visitor;
 
