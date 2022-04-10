@@ -15,9 +15,9 @@
  * January, 2014
  */
 
-package bantam.treedrawer;
+package proj8BogatyrevDimitrovWang.bantam.treedrawer;
 
-import bantam.ast.Program;
+import proj8BogatyrevDimitrovWang.bantam.ast.Program;
 
 import java.awt.*;
 
@@ -36,8 +36,8 @@ public class Drawer
 
         FontMetrics fontMetrics = frame.getFontMetrics(font);
 
-        bantam.treedrawer.LayoutVisitor layout = new LayoutVisitor(fontMetrics);
-        bantam.treedrawer.DrawingTree theDrawing = (DrawingTree) AST.accept(layout);
+        proj8BogatyrevDimitrovWang.bantam.treedrawer.LayoutVisitor layout = new LayoutVisitor(fontMetrics);
+        proj8BogatyrevDimitrovWang.bantam.treedrawer.DrawingTree theDrawing = (DrawingTree) AST.accept(layout);
         theDrawing.position(new Point(2048, 10));
         panel.setDrawing(theDrawing);
 
