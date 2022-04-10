@@ -26,7 +26,7 @@
 
 package proj8BogatyrevDimitrovWang.bantam.ast;
 
-import bantam.visitor.Visitor;
+import proj8BogatyrevDimitrovWang.bantam.visitor.Visitor;
 
 /**
  * The <tt>FormalList</tt> class represents a list of formal parameters.
@@ -49,7 +49,7 @@ public class FormalList extends ListNode {
      *
      * @param v bantam.visitor object
      * @return result of visiting this node
-     * @see bantam.visitor.Visitor
+     * @see proj8BogatyrevDimitrovWang.bantam.visitor.Visitor
      */
     public Object accept(Visitor v) {
         return v.visit(this);

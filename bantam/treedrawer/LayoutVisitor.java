@@ -19,7 +19,7 @@
 package proj8BogatyrevDimitrovWang.bantam.treedrawer;
 
 import proj8BogatyrevDimitrovWang.bantam.ast.*;
-import bantam.visitor.Visitor;
+import proj8BogatyrevDimitrovWang.bantam.visitor.Visitor;
 
 import java.awt.*;
 

@@ -2,7 +2,7 @@
  * File: Scanner Java
  * Names: Anton Dimitrov, Baron Wang, Phil Bogatyrev
  * Class: CS 361
- * Project 7
+ * Project 7, project 8
  * Date: April 10
  */
 

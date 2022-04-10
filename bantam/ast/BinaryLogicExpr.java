@@ -26,7 +26,7 @@
 
 package proj8BogatyrevDimitrovWang.bantam.ast;
 
-import bantam.visitor.Visitor;
+import proj8BogatyrevDimitrovWang.bantam.visitor.Visitor;
 
 
 /**
@@ -56,7 +56,7 @@ public abstract class BinaryLogicExpr extends BinaryExpr {
      *
      * @param v bantam.visitor object
      * @return result of visiting this node
-     * @see bantam.visitor.Visitor
+     * @see proj8BogatyrevDimitrovWang.bantam.visitor.Visitor
      */
     abstract public Object accept(Visitor v);
 }
