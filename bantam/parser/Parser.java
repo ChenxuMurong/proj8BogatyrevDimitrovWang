@@ -61,7 +61,19 @@ public class Parser
     // <Class> ::= CLASS <Identifier> <ExtendsClause> { <MemberList> }
     // <ExtendsClause> ::= EXTENDS <Identifier> | EMPTY
     // <MemberList> ::= EMPTY | <Member> <MemberList>
-    private Class_ parseClass() { }
+    private Class_ parseClass() {
+        int position = currentToken.position;
+        boolean insideOfAClass = false;
+        while (currentToken.kind != EOF) {
+            if(!insideOfAClass) {
+                if (currentToken.kind == Token.Kind.CLASS) {
+                    // parse members
+
+                }
+            }
+        }
+
+    }
 
 
     //Fields and Methods
@@ -114,7 +126,27 @@ public class Parser
 
 
     // <ReturnStmt> ::= RETURN <Expression> ; | RETURN ;
-    private Stmt parseReturn() { }
+    private Stmt parseReturn() {
+        // Expr expr = null;
+        /*
+        throw away comments
+         /*
+        * We can have the scanner throw away all comments
+        * advance to the next one, should be
+        * semicolon or expression
+        *
+        * Token currentToken=scanner.scan();
+        * if (currentToken.kind != SEMICOLON){
+        *     expr = parseExpression();
+        *     if (currentToken.kind != SEMICOLON){
+        *       /*error handling *
+        *       }
+        * }
+        * currentToken = scanner.scan();
+        return new ReturnStmt(currentToken.position, expr)
+         */
+
+    }
 
 
     // <BreakStmt> ::= BREAK ;
