@@ -12,16 +12,16 @@
 package proj8BogatyrevDimitrovWang.bantam.parser;
 
 
-import bantam.lexer.Scanner;
-import bantam.lexer.Scanner;
-import bantam.lexer.Token;
-import bantam.util.Error;
-import bantam.util.ErrorHandler;
-import bantam.util.CompilationException;
-
+import proj8BogatyrevDimitrovWang.bantam.lexer.Scanner;
+import proj8BogatyrevDimitrovWang.bantam.lexer.Token;
+import proj8BogatyrevDimitrovWang.bantam.util.CompilationException;
+import proj8BogatyrevDimitrovWang.bantam.util.Error;
+import proj8BogatyrevDimitrovWang.bantam.util.ErrorHandler;
 import proj8BogatyrevDimitrovWang.bantam.ast.*;
 
-import static bantam.lexer.Token.Kind.EOF;
+import java.io.IOException;
+
+import static proj8BogatyrevDimitrovWang.bantam.lexer.Token.Kind.*;
 
 
 public class Parser
@@ -44,6 +44,17 @@ public class Parser
     public Program parse(String filename) { }
 
 
+    /** helper function. Registers Parse error on 
+     * error handler and throws compilation exception
+     * @author Baron Wang
+     * @param message error message to be shown
+     * @throws CompilationException 
+     */
+    private void handleErr(String message) throws CompilationException{
+        errorHandler.register(Error.Kind.PARSE_ERROR, message);
+        throw new CompilationException(errorHandler);
+    }
+    
     // <Program> ::= <Class> | <Class> <Program>
     private Program parseProgram() {
         int position = currentToken.position;
@@ -88,7 +99,7 @@ public class Parser
     //Statements
     // <Stmt> ::= <WhileStmt> | <ReturnStmt> | <BreakStmt> | <VarDeclaration>
     //             | <ExpressionStmt> | <ForStmt> | <BlockStmt> | <IfStmt>
-    private Stmt parseStatement() {
+    private Stmt parseStatement() throws IOException {
             Stmt stmt;
 
             switch (currentToken.kind) {
@@ -126,26 +137,18 @@ public class Parser
 
 
     // <ReturnStmt> ::= RETURN <Expression> ; | RETURN ;
-    private Stmt parseReturn() {
-        // Expr expr = null;
-        /*
-        throw away comments
-         /*
-        * We can have the scanner throw away all comments
-        * advance to the next one, should be
-        * semicolon or expression
-        *
-        * Token currentToken=scanner.scan();
-        * if (currentToken.kind != SEMICOLON){
-        *     expr = parseExpression();
-        *     if (currentToken.kind != SEMICOLON){
-        *       /*error handling *
-        *       }
-        * }
-        * currentToken = scanner.scan();
-        return new ReturnStmt(currentToken.position, expr)
-         */
-
+    private Stmt parseReturn() throws IOException {
+        /* inspired from the code shown in class on Tuesday */
+         Expr expr = null;
+        Token currentToken = scanner.scan();
+         if (currentToken.kind != SEMICOLON){
+             expr = parseExpression();
+             if (currentToken.kind != SEMICOLON){
+                 handleErr("Illegal return statement");
+               }
+        }
+        currentToken = scanner.scan();
+        return new ReturnStmt(currentToken.position, expr);
     }
 
 
@@ -159,7 +162,35 @@ public class Parser
 
     // <VarDeclaration> ::= VAR <Id> = <Expression> ;
     // Every local variable must be initialized
-    private Stmt parseVarDeclaration() { }
+    private Stmt parseVarDeclaration() throws IOException {
+        int position = currentToken.position;
+        String name = "";
+        Expr expr = null;
+        // get next token which should be an identifier
+        currentToken = scanner.scan();
+        if (currentToken.kind == IDENTIFIER){
+            name = currentToken.getSpelling();
+            currentToken = scanner.scan();
+            if (currentToken.kind == ASSIGN){
+                currentToken = scanner.scan();
+                expr = parseExpression();
+                if (currentToken.kind != SEMICOLON){
+                    handleErr("Illegal var declaration " +
+                            "statement: missing semicolon");
+                }
+            }
+            else{
+                handleErr("Illegal var declaration statement: " +
+                        "expecting an assignment");
+            }
+        }
+        else{
+            handleErr("Illegal var declaration statement: " +
+                    "expecting an identifier");
+        }
+
+        return new DeclStmt(position, name, expr);
+    }
 
 
     // <ForStmt> ::= FOR ( <Start> ; <Terminate> ; <Increment> ) <STMT>

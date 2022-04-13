@@ -9,9 +9,9 @@
 
 package proj8BogatyrevDimitrovWang.bantam.lexer;
 
-import bantam.util.CompilationException;
-import bantam.util.Error;
-import bantam.util.ErrorHandler;
+import proj8BogatyrevDimitrovWang.bantam.util.CompilationException;
+import proj8BogatyrevDimitrovWang.bantam.util.Error;
+import proj8BogatyrevDimitrovWang.bantam.util.ErrorHandler;
 
 import java.io.IOException;
 import java.io.Reader;

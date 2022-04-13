@@ -5,7 +5,7 @@
  */
 package proj8BogatyrevDimitrovWang.bantam.util;
 
-import bantam.util.ErrorHandler;
+import proj8BogatyrevDimitrovWang.bantam.util.ErrorHandler;
 
 /**
  * This class represents an error in a Bantam Java program.
@@ -31,6 +31,7 @@ public class CompilationException extends RuntimeException
     public CompilationException(String message, Throwable cause) {
         super(message, cause);
     }
+
 
     public ErrorHandler getErrorHandler() { return errorHandler; }
 }
