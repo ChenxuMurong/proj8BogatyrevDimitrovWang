@@ -20,6 +20,7 @@ import proj8BogatyrevDimitrovWang.bantam.util.ErrorHandler;
 import proj8BogatyrevDimitrovWang.bantam.ast.*;
 
 import java.io.IOException;
+// TODO error token always the wrong type
 
 import static proj8BogatyrevDimitrovWang.bantam.lexer.Token.Kind.*;
 
@@ -165,30 +166,28 @@ public class Parser
     private Stmt parseVarDeclaration() throws IOException {
         int position = currentToken.position;
         String name = "";
-        Expr expr = null;
+        Expr expr;
         // get next token which should be an identifier
         currentToken = scanner.scan();
-        if (currentToken.kind == IDENTIFIER){
-            name = currentToken.getSpelling();
-            currentToken = scanner.scan();
-            if (currentToken.kind == ASSIGN){
-                currentToken = scanner.scan();
-                expr = parseExpression();
-                if (currentToken.kind != SEMICOLON){
-                    handleErr("Illegal var declaration " +
-                            "statement: missing semicolon");
-                }
-            }
-            else{
-                handleErr("Illegal var declaration statement: " +
-                        "expecting an assignment");
-            }
+        if (currentToken.kind != IDENTIFIER){
+            handleErr("Illegal var declaration statement: " +
+                    "var must be initialized");
         }
-        else{
+        name = currentToken.getSpelling();
+        currentToken = scanner.scan();
+        if (currentToken.kind != ASSIGN){
             handleErr("Illegal var declaration statement: " +
                     "expecting an identifier");
         }
+        currentToken = scanner.scan();
+        expr = parseExpression();
+        if (currentToken.kind != SEMICOLON){
+                handleErr("Illegal var declaration " +
+                        "statement: missing semicolon");
+        }
 
+        // always move the token forward by one
+        currentToken = scanner.scan();
         return new DeclStmt(position, name, expr);
     }
 
