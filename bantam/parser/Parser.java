@@ -220,6 +220,7 @@ public class Parser
 
     // <LogicalOR> ::= <logicalAND> <LogicalORRest>
     // <LogicalORRest> ::= EMPTY |  || <LogicalAND> <LogicalORRest>
+    // errors should be relayed to parseAndExpr
     private Expr parseOrExpr() throws IOException {
         int position = currentToken.position;
         Expr left;
@@ -237,6 +238,7 @@ public class Parser
 
     // <LogicalAND> ::= <ComparisonExpr> <LogicalANDRest>
     // <LogicalANDRest> ::= EMPTY |  && <ComparisonExpr> <LogicalANDRest>
+    // errors should be relayed to parseEqualityExpr
     private Expr parseAndExpr() throws IOException {
         int position = currentToken.position;
         // parseEqualityExpr() contains ComparisonExpr
