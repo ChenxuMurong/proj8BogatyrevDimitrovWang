@@ -256,7 +256,22 @@ public class Parser
     // <ComparisonExpr> ::= <RelationalExpr> <equalOrNotEqual> <RelationalExpr> |
     //                      <RelationalExpr>
     // <equalOrNotEqual> ::=  = | !=
-    private Expr parseEqualityExpr() { }
+    private Expr parseEqualityExpr() {
+        int position = currentToken.position;
+        Expr leftRelExpr = parseRelationalExpr();
+        // if current token is <equalOrNotEqual>
+        if (currentToken.spelling.equals("==")){
+            Expr rightRelExpr = parseRelationalExpr();
+            leftRelExpr = new BinaryCompEqExpr(position,
+                    leftRelExpr, rightRelExpr);
+        }
+        else if (currentToken.spelling.equals("!=")){
+            Expr rightRelExpr = parseRelationalExpr();
+            leftRelExpr = new BinaryCompNeExpr(position,
+                    leftRelExpr, rightRelExpr);
+        }
+        return leftRelExpr;
+    }
 
 
     // <RelationalExpr> ::= <AddExpr> | <AddExpr> <ComparisonOp> <AddExpr>
