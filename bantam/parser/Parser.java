@@ -315,6 +315,7 @@ public class Parser
         int position = currentToken.position;
         Expr leftExpr = parseAddExpr();
         Expr rightExpr;
+        // check if current token is comparison op
         switch (currentToken.spelling){
             case "<":
                 currentToken = scanner.scan();
@@ -337,6 +338,9 @@ public class Parser
                 return new BinaryCompGeqExpr(position,
                         leftExpr,rightExpr);
             default:
+                // default is when current token isn't
+                // comparison op, so it terminates
+                // the function
                 return leftExpr;
         }
     }
@@ -344,7 +348,23 @@ public class Parser
 
     // <AddExpr>::＝ <MultExpr> <MoreMultExpr>
     // <MoreMultExpr> ::= EMPTY | + <MultExpr> <MoreMultExpr> | - <MultExpr> <MoreMultExpr>
-    private Expr parseAddExpr() { }
+    private Expr parseAddExpr() throws IOException {
+        int position = currentToken.position;
+        Expr expr = parseMultExpr();
+        // checks if token is + or -
+        while(currentToken.spelling.equals("+")
+           || currentToken.spelling.equals("-")){
+            currentToken = scanner.scan();
+            // make the right hand side another expr
+            Expr anotherExpr = parseMultExpr();
+            // combine right hand side expr with (left hand side) expr
+            expr = (currentToken.spelling.equals("+") ?
+                new BinaryArithPlusExpr(position, expr, anotherExpr) :
+                new BinaryArithMinusExpr(position, expr, anotherExpr));
+            // repeat until not + or - anymore
+        }
+        return expr;
+    }
 
 
     // <MultiExpr> ::= <NewCastOrUnary> <MoreNCU>
@@ -352,23 +372,114 @@ public class Parser
     //               / <NewCastOrUnary> <MoreNCU> |
     //               % <NewCastOrUnary> <MoreNCU> |
     //               EMPTY
-    private Expr parseMultExpr() { }
+    private Expr parseMultExpr() throws IOException {
+        int position = currentToken.position;
+        Expr expr = parseNewCastOrUnary();
+        // checks if token is *, / or %
+        Expr rightExpr;
+        while(currentToken.spelling.equals("*")
+        || currentToken.spelling.equals("/")
+        || currentToken.spelling.equals("%")){
+            switch (currentToken.spelling) {
+                case "*" -> {
+                    currentToken = scanner.scan();
+                    // make the right hand side another expr
+                    rightExpr = parseNewCastOrUnary();
+                    // combine right hand side expr with
+                    // (left hand side) expr
+                    expr = new BinaryArithTimesExpr(position,
+                            expr, rightExpr);
+                }
+                case "/" -> {
+                    currentToken = scanner.scan();
+                    rightExpr = parseNewCastOrUnary();
+                    expr = new BinaryArithDivideExpr(position,
+                            expr, rightExpr);
+                }
+                case "%" -> {
+                    currentToken = scanner.scan();
+                    rightExpr = parseNewCastOrUnary();
+                    expr = new BinaryArithModulusExpr(position,
+                            expr, rightExpr);
+                }
+                // don't need a default case because
+                // the switch statement has the same condition
+                // as the while loop. It will just break out of
+                // the while loop once it is finished
+            }
+        }
+        return expr;
+
+    }
 
     // <NewCastOrUnary> ::= <NewExpression> | <CastExpression> | <UnaryPrefix>
+    // make the three expressions return NULL whenever the first token
+    // doesn't match
     private Expr parseNewCastOrUnary() { }
 
 
     // <NewExpression> ::= NEW <Identifier> ( )
-    private Expr parseNew() { }
+    private Expr parseNew() throws IOException {
+        int position = currentToken.position;
+
+        if (currentToken.kind != NEW){
+            // if token isn't NEW, return null
+            // other functions may return real val
+            return null;
+        }
+        currentToken = scanner.scan();
+        String typeStr = parseIdentifier();
+        // check for paren
+        if (currentToken.kind != LPAREN){
+            return null;
+        }
+        currentToken = scanner.scan();
+        if (currentToken.kind != RPAREN){
+            return null;
+        }
+        // if it reached this point, return expression
+        return new NewExpr(position, typeStr);
+    }
 
 
     // <CastExpression> ::= CAST ( <Type> , <Expression> )
-    private Expr parseCast() { }
+    private Expr parseCast() throws IOException {
+        int position = currentToken.position;
+
+        if (currentToken.kind != CAST){
+            // if token isn't CAST, return null
+            // other functions may return real val
+            return null;
+        }
+        currentToken = scanner.scan();
+        if (currentToken.kind != LPAREN){
+            return null;
+        }
+        currentToken = scanner.scan();
+        String typeStr = parseType();
+        Expr exprStr = parseExpression();
+        if (currentToken.kind != RPAREN){
+            return null;
+        }
+
+        return new CastExpr(position,typeStr,exprStr);
+
+    }
 
 
     // <UnaryPrefix> ::= <PrefixOp> <UnaryPreFix> | <UnaryPostfix>
     // <PrefixOp> ::= - | ! | ++ | --
-    private Expr parseUnaryPrefix() { }
+    private Expr parseUnaryPrefix() throws IOException {
+
+        currentToken = scanner.scan();
+        if(!currentToken.spelling.equals("-") &&  !currentToken.spelling.equals("!")
+         &&!currentToken.spelling.equals("++") && !currentToken.spelling.equals("--")){
+            // return null if it's not a unary prefix op
+            return null;
+        };
+        currentToken = scanner.scan();
+
+    }
 
 
     // <UnaryPostfix> ::= <Primary> <PostfixOp>
