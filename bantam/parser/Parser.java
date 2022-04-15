@@ -20,6 +20,7 @@ import proj8BogatyrevDimitrovWang.bantam.util.ErrorHandler;
 import proj8BogatyrevDimitrovWang.bantam.ast.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 // TODO error token always the wrong type
 
 import static proj8BogatyrevDimitrovWang.bantam.lexer.Token.Kind.*;
@@ -31,6 +32,7 @@ public class Parser
     private Scanner scanner; // provides the tokens
     private Token currentToken; // the lookahead token
     private ErrorHandler errorHandler; // collects & organizes the error messages
+    private ArrayList<Token> tokenList; // list of all tokens collected
 
     // constructor
     public Parser(ErrorHandler errorHandler) {
@@ -142,6 +144,7 @@ public class Parser
         /* inspired from the code shown in class on Tuesday */
          Expr expr = null;
         Token currentToken = scanner.scan();
+        tokenList.add(Parser.this.currentToken);
          if (currentToken.kind != SEMICOLON){
              expr = parseExpression();
              if (currentToken.kind != SEMICOLON){
@@ -149,6 +152,7 @@ public class Parser
                }
         }
         currentToken = scanner.scan();
+         tokenList.add(Parser.this.currentToken);
         return new ReturnStmt(currentToken.position, expr);
     }
 
@@ -169,17 +173,20 @@ public class Parser
         Expr expr;
         // get next token which should be an identifier
         currentToken = scanner.scan();
+        tokenList.add(currentToken);
         if (currentToken.kind != IDENTIFIER){
             handleErr("Illegal var declaration statement: " +
                     "var must be initialized");
         }
         name = currentToken.getSpelling();
         currentToken = scanner.scan();
+        tokenList.add(currentToken);
         if (currentToken.kind != ASSIGN){
             handleErr("Illegal var declaration statement: " +
                     "expecting an identifier");
         }
         currentToken = scanner.scan();
+        tokenList.add(currentToken);
         expr = parseExpression();
         if (currentToken.kind != SEMICOLON){
                 handleErr("Illegal var declaration " +
@@ -188,6 +195,7 @@ public class Parser
 
         // always move the token forward by one
         currentToken = scanner.scan();
+        tokenList.add(currentToken);
         return new DeclStmt(position, name, expr);
     }
 
@@ -215,12 +223,37 @@ public class Parser
 
     // <Expression> ::= <LogicalORExpr> <OptionalAssignment>
     // <OptionalAssignment> ::= EMPTY | = <Expression>
-    private Expr parseExpression() { }
+    // most assignments should be processed here
+    // TODO : refname
+    private Expr parseExpression() throws IOException {
+        int position = currentToken.position;
+        Expr expr = parseOrExpr();
+        /* Then check whether the currentToken has type ASSIGN and check whether expr is an instance of VarExpr.
+            If both are true, call parseExpression() to get the expression being assigned to the variable
+            and return a new AssignExpr.
+            If either are false, just return expr. */
+        if (currentToken.kind == ASSIGN && expr instanceof VarExpr){
+            currentToken = scanner.scan();
+            tokenList.add(currentToken);
+            String argument = null;
+            if(currentToken.spelling.equals("this")){
+                argument = "this";
+            }
+            else if(currentToken.spelling.equals("super")){
+                argument = "super";
+            }
+                    Expr rightExpr = parseExpression();
+            return new AssignExpr(position,argument,
+                    ((VarExpr) expr).getName(),rightExpr);
+        }
+        return expr;
+    }
 
 
     // <LogicalOR> ::= <logicalAND> <LogicalORRest>
     // <LogicalORRest> ::= EMPTY |  || <LogicalAND> <LogicalORRest>
     // errors should be relayed to parseAndExpr
+    //
     private Expr parseOrExpr() throws IOException {
         int position = currentToken.position;
         Expr left;
@@ -228,6 +261,7 @@ public class Parser
         left = parseAndExpr();
         while (currentToken.spelling.equals("||")) {
             currentToken = scanner.scan();
+            tokenList.add(currentToken);
             Expr right = parseAndExpr();
             left = new BinaryLogicOrExpr(position, left, right);
         }
@@ -246,6 +280,7 @@ public class Parser
         // currentToken at LogicalAndRest
         while (currentToken.spelling.equals("&&")){
             currentToken = scanner.scan();
+            tokenList.add(currentToken);
             Expr right = parseEqualityExpr();
             left = new BinaryLogicAndExpr(position,left,right);
         }
@@ -255,8 +290,8 @@ public class Parser
 
     // <ComparisonExpr> ::= <RelationalExpr> <equalOrNotEqual> <RelationalExpr> |
     //                      <RelationalExpr>
-    // <equalOrNotEqual> ::=  = | !=
-    private Expr parseEqualityExpr() {
+    // <equalOrNotEqual> ::=  == | !=
+    private Expr parseEqualityExpr() throws IOException {
         int position = currentToken.position;
         Expr leftRelExpr = parseRelationalExpr();
         // if current token is <equalOrNotEqual>
@@ -276,7 +311,35 @@ public class Parser
 
     // <RelationalExpr> ::= <AddExpr> | <AddExpr> <ComparisonOp> <AddExpr>
     // <ComparisonOp> ::= < | > | <= | >=
-    private Expr parseRelationalExpr() { }
+    private Expr parseRelationalExpr() throws IOException {
+        int position = currentToken.position;
+        Expr leftExpr = parseAddExpr();
+        Expr rightExpr;
+        switch (currentToken.spelling){
+            case "<":
+                currentToken = scanner.scan();
+                rightExpr = parseAddExpr();
+                return new BinaryCompLtExpr(position,
+                        leftExpr,rightExpr);
+            case ">":
+                currentToken = scanner.scan();
+                rightExpr = parseAddExpr();
+                return new BinaryCompGtExpr(position,
+                        leftExpr,rightExpr);
+            case "<=":
+                currentToken = scanner.scan();
+                rightExpr = parseAddExpr();
+                return new BinaryCompLeqExpr(position,
+                        leftExpr,rightExpr);
+            case ">=":
+                currentToken = scanner.scan();
+                rightExpr = parseAddExpr();
+                return new BinaryCompGeqExpr(position,
+                        leftExpr,rightExpr);
+            default:
+                return leftExpr;
+        }
+    }
 
 
     // <AddExpr>::＝ <MultExpr> <MoreMultExpr>
