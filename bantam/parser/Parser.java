@@ -48,7 +48,7 @@ public class Parser
     /** helper function. Registers Parse error on 
      * error handler and throws compilation exception
      * @author Baron Wang
-     * @param message error message to be shown
+     * @param message error message to show
      * @throws CompilationException 
      */
     private void handleErr(String message) throws CompilationException{
@@ -220,13 +220,13 @@ public class Parser
 
     // <LogicalOR> ::= <logicalAND> <LogicalORRest>
     // <LogicalORRest> ::= EMPTY |  || <LogicalAND> <LogicalORRest>
-    private Expr parseOrExpr() {
+    private Expr parseOrExpr() throws IOException {
         int position = currentToken.position;
         Expr left;
 
         left = parseAndExpr();
         while (currentToken.spelling.equals("||")) {
-            //...advance to the next token...
+            currentToken = scanner.scan();
             Expr right = parseAndExpr();
             left = new BinaryLogicOrExpr(position, left, right);
         }
