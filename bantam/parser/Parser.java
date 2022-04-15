@@ -237,7 +237,18 @@ public class Parser
 
     // <LogicalAND> ::= <ComparisonExpr> <LogicalANDRest>
     // <LogicalANDRest> ::= EMPTY |  && <ComparisonExpr> <LogicalANDRest>
-    private Expr parseAndExpr() { }
+    private Expr parseAndExpr() throws IOException {
+        int position = currentToken.position;
+        // parseEqualityExpr() contains ComparisonExpr
+        Expr left = parseEqualityExpr();
+        // currentToken at LogicalAndRest
+        while (currentToken.spelling.equals("&&")){
+            currentToken = scanner.scan();
+            Expr right = parseEqualityExpr();
+            left = new BinaryLogicAndExpr(position,left,right);
+        }
+        return left;
+    }
 
 
     // <ComparisonExpr> ::= <RelationalExpr> <equalOrNotEqual> <RelationalExpr> |
