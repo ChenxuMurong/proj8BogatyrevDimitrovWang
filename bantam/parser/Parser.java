@@ -20,8 +20,6 @@ import proj8BogatyrevDimitrovWang.bantam.util.ErrorHandler;
 import proj8BogatyrevDimitrovWang.bantam.ast.*;
 
 import java.io.IOException;
-import java.util.ArrayList;
-// TODO error token always the wrong type
 
 import static proj8BogatyrevDimitrovWang.bantam.lexer.Token.Kind.*;
 
@@ -396,7 +394,8 @@ public class Parser
     // <Expression> ::= <LogicalORExpr> <OptionalAssignment>
     // <OptionalAssignment> ::= EMPTY | = <Expression>
     // most assignments should be processed here
-    // TODO : refname
+    // TODO : refname this.field = 999;
+    // any number of [<reference>.]
     private Expr parseExpression() throws IOException {
         int position = currentToken.position;
         Expr expr = parseOrExpr();
@@ -427,7 +426,6 @@ public class Parser
     // <LogicalOR> ::= <logicalAND> <LogicalORRest>
     // <LogicalORRest> ::= EMPTY |  || <LogicalAND> <LogicalORRest>
     // errors should be relayed to parseAndExpr
-    //
     private Expr parseOrExpr() throws IOException {
         int position = currentToken.position;
         Expr left;
@@ -733,47 +731,108 @@ public class Parser
     // <VarExpr> ::= <VarExprPrefix> <Identifier> <VarExprSuffix>
     // <VarExprPrefix> ::= SUPER . | THIS . | EMPTY
     // <VarExprSuffix> ::= ( <Arguments> ) | EMPTY
-    private Expr parsePrimary() { }
+    private Expr parsePrimary() throws IOException {
+        int position = currentToken.position;
+        Expr expr;
+        // moving on from token (
+        currentToken = scanner.scan();
+        // case 1: ( <Expression> )
+        // check for "("
+        if (currentToken.spelling.equals("(")){
+            currentToken = scanner.scan();
+            expr = parseExpression();
+            // check for ")"
+            if (!currentToken.spelling.equals(")")){
+                handleErr("Illegal expression: " +
+                        "unclosed parenthesis, \")\" expected");
+            }
+            return expr;
+        }
+        // case 2: <IntegerConst>
+        else if(currentToken.kind == INTCONST){
+            return parseIntConst();
+        }
+        // case 3: <BooleanConst>
+        else if(currentToken.kind == BOOLEAN){
+            return parseBoolean();
+        }
+        // case 4: <StringConst>
+        else if(currentToken.kind == STRCONST){
+            return parseStringConst();
+        }
+        // else: varExpr TODO
+        else{
+            return new VarExpr(position,)
+        }
+
+
+    }
 
 
     // <Arguments> ::= EMPTY | <Expression> <MoreArgs>
     // <MoreArgs>  ::= EMPTY | , <Expression> <MoreArgs>
-    private ExprList parseArguments() { }
+    private ExprList parseArguments() {
+        int position = currentToken.position;
+        ExprList exprList = new ExprList(position);
+        // if it reads an <Expression>
+        // TODO IDK
+    }
 
 
     // <Parameters> ::=  EMPTY | <Formal> <MoreFormals>
     // <MoreFormals> ::= EMPTY | , <Formal> <MoreFormals
-    private FormalList parseParameters() { }
+    private FormalList parseParameters() { /*TODO same as above*/ }
 
 
     // <Formal> ::= <Type> <Identifier>
-    private Formal parseFormal() { }
+    private Formal parseFormal() {
+        int position = currentToken.position;
+        String typeName = parseType();
+        String idName = parseIdentifier();
+        return new Formal(position,typeName,idName);
+    }
 
 
     // <Type> ::= <Identifier>
-    private String parseType() { }
+    private String parseType() {
+        return parseIdentifier();
+    }
 
 
     //----------------------------------------
     //Terminals
 
-    private String parseOperator() { }
-
-
-    private String parseIdentifier() { }
-
-
-    private ConstStringExpr parseStringConst() {
-        //...save the currentToken's string to a local variable...
-        //...advance to the next token...
-        //...return a new ConstStringExpr containing the string...
+    private String parseOperator() {
+        // TODO IDK
     }
 
 
-    private ConstIntExpr parseIntConst() {  }
+    private String parseIdentifier() {
+        return currentToken.spelling;
+    }
 
 
-    private ConstBooleanExpr parseBoolean() { }
+    private ConstStringExpr parseStringConst() throws IOException {
+        int position = currentToken.position;
+        //...save the currentToken's string to a local variable...
+        String strConst = currentToken.spelling;
+        //...advance to the next token...
+        currentToken = scanner.scan();
+        //...return a new ConstStringExpr containing the string...
+        return new ConstStringExpr(position,strConst);
+    }
+
+
+    private ConstIntExpr parseIntConst() {
+        int position = currentToken.position;
+        return new ConstIntExpr(position, currentToken.spelling);
+    }
+
+
+    private ConstBooleanExpr parseBoolean() {
+        int position = currentToken.position;
+        return new ConstBooleanExpr(position, currentToken.spelling);
+    }
 
 }
 
