@@ -243,6 +243,7 @@ public class Parser
             handleErr("Illegal break statement: " +
                     "\";\" expected");
         }
+        return new BreakStmt(currentToken.position);
     }
 
 
@@ -671,7 +672,6 @@ public class Parser
 
         // if it is a prefixOp then it switches cases
         // advances to next token and recurse
-        String prefixOp = currentToken.spelling;
 
         switch (currentToken.spelling) {
             case "-" -> {
@@ -706,7 +706,26 @@ public class Parser
 
     // <UnaryPostfix> ::= <Primary> <PostfixOp>
     // <PostfixOp> ::= ++ | -- | EMPTY
-    private Expr parseUnaryPostfix() { }
+    private Expr parseUnaryPostfix() throws IOException {
+        int position = currentToken.position;
+        Expr primaryExpr = parsePrimary();
+
+        // check for post++
+        if (currentToken.spelling.equals("++")){
+            currentToken = scanner.scan();
+            return new UnaryIncrExpr(position,primaryExpr,true);
+
+        }
+        // check for post--
+        else if (currentToken.spelling.equals("--")){
+            currentToken = scanner.scan();
+            return new UnaryDecrExpr(position,primaryExpr,true);
+        }
+        // no postfix
+        else{
+            return primaryExpr;
+        }
+    }
 
 
     // <Primary> ::= ( <Expression> ) | <IntegerConst> | <BooleanConst> |
