@@ -166,25 +166,25 @@ public class Parser
                 case IF:
                     stmt = parseIf();
                     break;
-                case LCURLY:
+                case LCURLY: 
                     stmt = parseBlock();
                     break;
-                case VAR:
+                case VAR: 
                     stmt = parseVarDeclaration();
                     break;
-                case RETURN:
+                case RETURN: 
                     stmt = parseReturn();
                     break;
-                case FOR:
+                case FOR: 
                     stmt = parseFor();
                     break;
-                case WHILE:
+                case WHILE: 
                     stmt = parseWhile();
                     break;
-                case BREAK:
+                case BREAK: 
                     stmt = parseBreak();
                     break;
-                default:
+                default: 
                     stmt = parseExpressionStmt();
             }
 
@@ -325,7 +325,7 @@ public class Parser
         }
         // at this point currentToken is ";"
         currentToken = scanner.scan();
-        
+
         // check for ")"
         if (!currentToken.spelling.equals(")")){
             handleErr("Illegal for statement: " +
@@ -339,13 +339,52 @@ public class Parser
 
     // <BlockStmt> ::= { <Body> }
     // <Body> ::= EMPTY | <Stmt> <Body>
-    private Stmt parseBlock() {
-        return new BlockStmt(1,new StmtList(1));
+    private Stmt parseBlock() throws IOException {
+        int position = currentToken.position;
+        // moving on from token {
+        currentToken = scanner.scan();
+        StmtList stmtList = new StmtList(position);
+        // adds statements into the statement list
+        // until currentToken reaches "}"
+        while(!currentToken.spelling.equals("}")){
+            Stmt stmt = parseStatement();
+            stmtList.addElement(stmt);
+        }
+        return new BlockStmt(position,stmtList);
     }
 
 
     // <IfStmt> ::= IF ( <Expr> ) <Stmt> | IF ( <Expr> ) <Stmt> ELSE <Stmt>
-    private Stmt parseIf() { }
+    private Stmt parseIf() throws IOException {
+        int position = currentToken.position;
+        Expr predExpr;
+        Stmt bodyStmt;
+        Stmt elseStmt = null;
+        // moving on from token IF
+        currentToken = scanner.scan();
+        // check for "("
+        if (!currentToken.spelling.equals("(")){
+            handleErr("Illegal if statement: " +
+                    "missing conditions, \"(\" expected");
+        }
+        currentToken = scanner.scan();
+        predExpr = parseExpression();
+        // check for ")"
+        if (!currentToken.spelling.equals(")")){
+            handleErr("Illegal if statement: " +
+                    "unclosed parenthesis, \")\" expected");
+        }
+        currentToken = scanner.scan();
+        bodyStmt = parseStatement();
+
+        // checking for ELSE
+        if (currentToken.spelling.equals("else")){
+            currentToken = scanner.scan();
+            elseStmt = parseStatement();
+        }
+        
+        return new IfStmt(position,predExpr,bodyStmt,elseStmt);
+    }
 
 
     //-----------------------------------------
