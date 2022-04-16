@@ -20,6 +20,7 @@ import proj8BogatyrevDimitrovWang.bantam.util.ErrorHandler;
 import proj8BogatyrevDimitrovWang.bantam.ast.*;
 
 import java.io.IOException;
+import java.util.Set;
 
 import static proj8BogatyrevDimitrovWang.bantam.lexer.Token.Kind.*;
 
@@ -394,29 +395,19 @@ public class Parser
     // <Expression> ::= <LogicalORExpr> <OptionalAssignment>
     // <OptionalAssignment> ::= EMPTY | = <Expression>
     // most assignments should be processed here
-    // TODO : refname this.field = 999;
-    // any number of [<reference>.]
     private Expr parseExpression() throws IOException {
         int position = currentToken.position;
         Expr expr = parseOrExpr();
         /*  Check whether the currentToken has type ASSIGN and
-        check whether expr is an instance of VarExpr.
-            If both are true, call parseExpression() to get the
-            expression being assigned to the variable
-            and return a new AssignExpr.
-            If either are false, just return expr. */
+        check whether expr is an instance of VarExpr. */
         if (currentToken.kind == ASSIGN && expr instanceof VarExpr){
             currentToken = scanner.scan();
 
-            String argument = null;
-            if(currentToken.spelling.equals("this")){
-                argument = "this";
-            }
-            else if(currentToken.spelling.equals("super")){
-                argument = "super";
-            }
-                    Expr rightExpr = parseExpression();
-            return new AssignExpr(position,argument,
+            Expr rightExpr = parseExpression();
+            return new AssignExpr(position,
+                    // refName could be null, this, or super
+                    // we get it from the ref field of VarExpr
+                    ((VarExpr) ((VarExpr) expr).getRef()).getName(),
                     ((VarExpr) expr).getName(),rightExpr);
         }
         return expr;
@@ -760,33 +751,134 @@ public class Parser
         else if(currentToken.kind == STRCONST){
             return parseStringConst();
         }
-        // else: varExpr TODO
-        else{
-            return new VarExpr(position,)
-        }
+        // case 5: varExpr
+        else {
+            VarExpr prefixVarExpr;
+            String name; // id
 
+            // switch statement checking for "super."/"this."
+            switch (currentToken.spelling) {
+                // "this."  appearing first
+                case "this" -> {
+                    prefixVarExpr = new VarExpr(position, null, "this");
+                    currentToken = scanner.scan();
+                    // next token should be DOT
+                    if (currentToken.kind != DOT) {
+                        handleErr("Illegal variable expression: " +
+                                "dot (\".\") must come after \"this\"");
+                    }
+                    currentToken = scanner.scan();
+                    // after DOT it should be identifier
+                }
+                // "this."  appearing first
+                case "super" -> {
+                    prefixVarExpr = new VarExpr(position, null, "super");
+                    currentToken = scanner.scan();
+                    // next token should be DOT
+                    if (currentToken.kind != DOT) {
+                        handleErr("Illegal variable expression: " +
+                                "dot (\".\") must come after \"super\"");
+                    }
+                    currentToken = scanner.scan();
+                    // after DOT it should be identifier
+                }
+                // no "super" or "this"
+                default -> {
+                    prefixVarExpr = null;
+                    currentToken = scanner.scan();
+                    // next it should be identifier
+                }
+            }
+            name = parseIdentifier();
+
+            // search for (<Arguments>)
+            if (currentToken.spelling.equals("(")){
+                currentToken = scanner.scan();
+                ExprList args = parseArguments();
+                // check for closing paren
+                if (!currentToken.spelling.equals(")")){
+                    handleErr("Illegal expression: " +
+                            "unclosed parenthesis, \")\" expected");
+                }
+                currentToken = scanner.scan();
+                // it's a method call (dispatch) if it hit "("
+                return new DispatchExpr(position,prefixVarExpr,name,args);
+            }
+            // non-dispatch call
+            return new VarExpr(position, prefixVarExpr, name);
+        }
 
     }
 
 
     // <Arguments> ::= EMPTY | <Expression> <MoreArgs>
     // <MoreArgs>  ::= EMPTY | , <Expression> <MoreArgs>
-    private ExprList parseArguments() {
+    private ExprList parseArguments() throws IOException {
         int position = currentToken.position;
         ExprList exprList = new ExprList(position);
-        // if it reads an <Expression>
-        // TODO IDK
+        // since parsePrimary() is the only one that calls this
+        // function, we know that as long as !currentToken.equals(")")
+        // it is reading an Expression.
+        if (!currentToken.spelling.equals(")")) {
+
+            Expr expr = parseExpression();
+            exprList.addElement(expr);
+
+            // can't have expr after expr.
+            // token MUST BE EITHER ")" OR ","
+
+            // don't need to do anything if it's ")"
+            // if it's a "," skip it and read next expression
+            while(currentToken.kind == COMMA){
+                currentToken = scanner.scan();
+                Expr expr2 = parseExpression();
+                exprList.addElement(expr2);
+            }
+
+        }
+        // currentToken should be ")" at this point
+        // potential error handled in caller function
+        return exprList;
     }
 
 
     // <Parameters> ::=  EMPTY | <Formal> <MoreFormals>
     // <MoreFormals> ::= EMPTY | , <Formal> <MoreFormals
-    private FormalList parseParameters() { /*TODO same as above*/ }
+    private FormalList parseParameters() throws IOException {
+        int position = currentToken.position;
+        FormalList formalList = new FormalList(position);
+        // the only function that calls parseParams() is parseMember()
+        // when it is trying to parse a method. So the ending condition
+        // should be ")"
+
+        if (!currentToken.spelling.equals(")")) {
+
+            Formal formal = parseFormal();
+            formalList.addElement(formal);
+
+            // can't have formal after formal.
+            // token MUST BE EITHER ")" OR ","
+
+            // don't need to do anything if it's ")"
+            // if it's a "," skip it and read next formal
+            while(currentToken.kind == COMMA){
+                currentToken = scanner.scan();
+                Formal formal2 = parseFormal();
+                formalList.addElement(formal2);
+            }
+
+        }
+        // currentToken should be ")" at this point
+        // potential error handled in caller function
+        return formalList;
+
+    }
 
 
     // <Formal> ::= <Type> <Identifier>
     private Formal parseFormal() {
         int position = currentToken.position;
+        // return null if parseType fails
         String typeName = parseType();
         String idName = parseIdentifier();
         return new Formal(position,typeName,idName);
@@ -803,16 +895,29 @@ public class Parser
     //Terminals
 
     private String parseOperator() {
-        // TODO IDK
+        // set of all possible operators
+        Set<Token.Kind> operators = Set.of(BINARYLOGIC, PLUSMINUS,
+                MULDIV, COMPARE, UNARYINCR, UNARYDECR, ASSIGN,
+                UNARYNOT);
+        if (!operators.contains(currentToken.kind)){
+            handleErr("Illegal identifier");
+        }
+        return currentToken.spelling;
     }
 
 
     private String parseIdentifier() {
+        if (currentToken.kind != IDENTIFIER){
+            handleErr("Illegal identifier");
+        }
         return currentToken.spelling;
     }
 
 
     private ConstStringExpr parseStringConst() throws IOException {
+        if (currentToken.kind != STRCONST){
+            handleErr("Illegal string constant");
+        }
         int position = currentToken.position;
         //...save the currentToken's string to a local variable...
         String strConst = currentToken.spelling;
@@ -824,12 +929,18 @@ public class Parser
 
 
     private ConstIntExpr parseIntConst() {
+        if (currentToken.kind != INTCONST){
+            handleErr("Illegal integer constant");
+        }
         int position = currentToken.position;
         return new ConstIntExpr(position, currentToken.spelling);
     }
 
 
     private ConstBooleanExpr parseBoolean() {
+        if (currentToken.kind != BOOLEAN){
+            handleErr("Illegal boolean");
+        }
         int position = currentToken.position;
         return new ConstBooleanExpr(position, currentToken.spelling);
     }
