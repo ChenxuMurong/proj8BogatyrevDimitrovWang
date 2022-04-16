@@ -33,7 +33,6 @@ public class Parser
     private String fileName; // stores the filename
     private Token currentToken; // the lookahead token
     private ErrorHandler errorHandler; // collects & organizes the error messages
-    private ArrayList<Token> tokenList; // list of all tokens collected
 
     // constructor
     public Parser(ErrorHandler errorHandler) {
@@ -136,7 +135,7 @@ public class Parser
             FormalList formalList = parseParameters();
             // now it should get a ')'. If not, error out
             if(!currentToken.spelling.equals(")")){
-                handleErr("Exception: expecting \")\"");
+                handleErr("Illegal method declaration. \")\" expected");
             }
             currentToken = scanner.scan();
             // parseBlock should only return BlockStmt
@@ -146,6 +145,13 @@ public class Parser
             return new Method(position,typeName,
                     funcOrVarName,formalList, blockStmt.getStmtList());
         }
+
+        // program shouldn't reach here; if it does, it got a wrong token
+        handleErr("Illegal field/method declaration. " +
+                "\"(\", \"=\", or \";\" expected");
+        // this return statement will never be reached.
+        // it is here to keep IntelliJ happy
+        return null;
     }
 
 
@@ -187,7 +193,28 @@ public class Parser
 
 
     // <WhileStmt> ::= WHILE ( <Expression> ) <Stmt>
-    private Stmt parseWhile() { }
+    private Stmt parseWhile() throws IOException {
+        int position = currentToken.position;
+        Expr predExpr;
+        Stmt stmt;
+        // moving on from token WHILE
+        currentToken = scanner.scan();
+        // check for "("
+        if (!currentToken.spelling.equals("(")){
+            handleErr("Illegal while statement: " +
+                    "missing conditions, \"(\" expected");
+        }
+        currentToken = scanner.scan();
+        predExpr = parseExpression();
+        // check for ")"
+        if (!currentToken.spelling.equals(")")){
+            handleErr("Illegal while statement: " +
+                    "unclosed parenthesis, \")\" expected");
+        }
+        currentToken = scanner.scan();
+        stmt = parseStatement();
+        return new WhileStmt(position,predExpr,stmt);
+    }
 
 
     // <ReturnStmt> ::= RETURN <Expression> ; | RETURN ;
@@ -195,25 +222,35 @@ public class Parser
         /* inspired from the code shown in class on Tuesday */
          Expr expr = null;
         Token currentToken = scanner.scan();
-        tokenList.add(Parser.this.currentToken);
+
          if (currentToken.kind != SEMICOLON){
              expr = parseExpression();
              if (currentToken.kind != SEMICOLON){
-                 handleErr("Illegal return statement");
+                 handleErr("Illegal return statement: " +
+                         "\";\" expected");
                }
         }
         currentToken = scanner.scan();
-         tokenList.add(Parser.this.currentToken);
+
         return new ReturnStmt(currentToken.position, expr);
     }
 
 
     // <BreakStmt> ::= BREAK ;
-    private Stmt parseBreak() { }
+    private Stmt parseBreak() {
+        // current token should be pointing to ";"
+        if (currentToken.kind != SEMICOLON){
+            handleErr("Illegal break statement: " +
+                    "\";\" expected");
+        }
+    }
 
 
     // <ExpressionStmt> ::= <Expression> ;
-    private ExprStmt parseExpressionStmt() { }
+    private ExprStmt parseExpressionStmt() throws IOException {
+        return new ExprStmt(
+                currentToken.position, parseExpression()) ;
+    }
 
 
     // <VarDeclaration> ::= VAR <Id> = <Expression> ;
@@ -224,20 +261,19 @@ public class Parser
         Expr expr;
         // get next token which should be an identifier
         currentToken = scanner.scan();
-        tokenList.add(currentToken);
         if (currentToken.kind != IDENTIFIER){
             handleErr("Illegal var declaration statement: " +
                     "var must be initialized");
         }
         name = currentToken.getSpelling();
         currentToken = scanner.scan();
-        tokenList.add(currentToken);
+
         if (currentToken.kind != ASSIGN){
             handleErr("Illegal var declaration statement: " +
                     "expecting an identifier");
         }
         currentToken = scanner.scan();
-        tokenList.add(currentToken);
+
         expr = parseExpression();
         if (currentToken.kind != SEMICOLON){
                 handleErr("Illegal var declaration " +
@@ -246,7 +282,7 @@ public class Parser
 
         // always move the token forward by one
         currentToken = scanner.scan();
-        tokenList.add(currentToken);
+
         return new DeclStmt(position, name, expr);
     }
 
@@ -255,7 +291,50 @@ public class Parser
     // <Start> ::=     EMPTY | <Expression>
     // <Terminate> ::= EMPTY | <Expression>
     // <Increment> ::= EMPTY | <Expression>
-    private Stmt parseFor() { }
+    private Stmt parseFor() throws IOException {
+        int position = currentToken.position;
+        Expr startExpr = null;
+        Expr endExpr = null;
+        Expr updateExpr = null;
+        Stmt bodyStmt;
+
+        // moving on from token FOR
+        currentToken = scanner.scan();
+        // check for "("
+        if (!currentToken.spelling.equals("(")){
+            handleErr("Illegal for statement: " +
+                    "missing parenthesis, \"(\" expected");
+        }
+
+        currentToken = scanner.scan();
+        // if start isn't empty, parse it
+        if (!currentToken.spelling.equals(";")){
+            startExpr = parseExpression();
+        }
+        // at this point currentToken is ";"
+        currentToken = scanner.scan();
+        // if end condition isn't empty, parse it
+        if (!currentToken.spelling.equals(";")){
+            endExpr = parseExpression();
+        }
+        // at this point currentToken is ";"
+        currentToken = scanner.scan();
+        // if start isn't empty, parse it
+        if (!currentToken.spelling.equals(";")){
+            updateExpr = parseExpression();
+        }
+        // at this point currentToken is ";"
+        currentToken = scanner.scan();
+        
+        // check for ")"
+        if (!currentToken.spelling.equals(")")){
+            handleErr("Illegal for statement: " +
+                    "unclosed parenthesis, \")\" expected");
+        }
+        currentToken = scanner.scan();
+        bodyStmt = parseStatement();
+        return new ForStmt(position,startExpr,endExpr,updateExpr,bodyStmt);
+    }
 
 
     // <BlockStmt> ::= { <Body> }
@@ -289,7 +368,7 @@ public class Parser
             If either are false, just return expr. */
         if (currentToken.kind == ASSIGN && expr instanceof VarExpr){
             currentToken = scanner.scan();
-            tokenList.add(currentToken);
+
             String argument = null;
             if(currentToken.spelling.equals("this")){
                 argument = "this";
@@ -316,7 +395,7 @@ public class Parser
         left = parseAndExpr();
         while (currentToken.spelling.equals("||")) {
             currentToken = scanner.scan();
-            tokenList.add(currentToken);
+
             Expr right = parseAndExpr();
             left = new BinaryLogicOrExpr(position, left, right);
         }
@@ -335,7 +414,7 @@ public class Parser
         // currentToken at LogicalAndRest
         while (currentToken.spelling.equals("&&")){
             currentToken = scanner.scan();
-            tokenList.add(currentToken);
+
             Expr right = parseEqualityExpr();
             left = new BinaryLogicAndExpr(position,left,right);
         }
@@ -469,7 +548,7 @@ public class Parser
 
     // <NewCastOrUnary> ::= <NewExpression> | <CastExpression> | <UnaryPrefix>
     // make the three expressions return NULL whenever the first token
-    // doesn't match
+    // doesn't match TODO refactor
     private Expr parseNewCastOrUnary() throws IOException {
         Expr expr;
        // if (parseNew() == null){
@@ -579,7 +658,9 @@ public class Parser
             // no need for default because all possibilities
             // have been covered
         }
-        // this line is never reached
+        // this line should never be reached
+        // TODO delete debugging line
+        System.out.println("ERROR this line should never be reached");
         return null;
     }
 
