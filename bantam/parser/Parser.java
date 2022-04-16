@@ -45,7 +45,7 @@ public class Parser
      * error handler and throws compilation exception
      * @author Baron Wang
      * @param message error message to show
-     * @throws CompilationException
+     * @throws CompilationException to be caught in main
      */
     private void handleErr(String message) throws CompilationException{
         errorHandler.register(Error.Kind.PARSE_ERROR, message);
@@ -96,6 +96,7 @@ public class Parser
         }
         currentToken = scanner.scan();
         MemberList memberList = new MemberList(position);
+        // while currentToken is not hitting "}", parse next member
         while (!currentToken.spelling.equals("}")){
             Member currentMember = parseMember();
             memberList.addElement(currentMember);
@@ -110,7 +111,42 @@ public class Parser
     // <Method> ::= <Type> <Identifier> ( <Parameters> ) <BlockStmt>
     // <Field> ::= <Type> <Identifier> <InitialValue> ;
     // <InitialValue> ::= EMPTY | = <Expression>
-    private Member parseMember() { }
+    private Member parseMember() throws IOException {
+        int position = currentToken.position;
+        // either way, starts with Type and Identifier
+        String typeName = parseType();
+        String funcOrVarName = parseIdentifier();
+
+        // case 1: field
+        if (currentToken.spelling.equals("=")){
+            currentToken = scanner.scan();
+            Expr expr = parseExpression();
+            return new Field(position,typeName,funcOrVarName,expr);
+        }
+            // field without initialization
+        if (currentToken.spelling.equals(";")){
+            currentToken = scanner.scan();
+            // init is an "optional" field so i'm passing null
+            return new Field(position,typeName,funcOrVarName,null);
+        }
+
+        // case 2: method
+        if (currentToken.spelling.equals("(")){
+            currentToken = scanner.scan();
+            FormalList formalList = parseParameters();
+            // now it should get a ')'. If not, error out
+            if(!currentToken.spelling.equals(")")){
+                handleErr("Exception: expecting \")\"");
+            }
+            currentToken = scanner.scan();
+            // parseBlock should only return BlockStmt
+            // TODO potential bug here with BlockStmt
+            BlockStmt blockStmt = (BlockStmt) parseBlock();
+            // return this method
+            return new Method(position,typeName,
+                    funcOrVarName,formalList, blockStmt.getStmtList());
+        }
+    }
 
 
     //-----------------------------------
@@ -224,7 +260,9 @@ public class Parser
 
     // <BlockStmt> ::= { <Body> }
     // <Body> ::= EMPTY | <Stmt> <Body>
-    private Stmt parseBlock() { }
+    private Stmt parseBlock() {
+        return new BlockStmt(1,new StmtList(1));
+    }
 
 
     // <IfStmt> ::= IF ( <Expr> ) <Stmt> | IF ( <Expr> ) <Stmt> ELSE <Stmt>
@@ -243,8 +281,10 @@ public class Parser
     private Expr parseExpression() throws IOException {
         int position = currentToken.position;
         Expr expr = parseOrExpr();
-        /* Then check whether the currentToken has type ASSIGN and check whether expr is an instance of VarExpr.
-            If both are true, call parseExpression() to get the expression being assigned to the variable
+        /*  Check whether the currentToken has type ASSIGN and
+        check whether expr is an instance of VarExpr.
+            If both are true, call parseExpression() to get the
+            expression being assigned to the variable
             and return a new AssignExpr.
             If either are false, just return expr. */
         if (currentToken.kind == ASSIGN && expr instanceof VarExpr){
